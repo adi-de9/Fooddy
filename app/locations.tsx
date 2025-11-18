@@ -1,11 +1,6 @@
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from "react-native";
-import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 const LOCATIONS = [
   {
@@ -73,7 +68,6 @@ const LOCATIONS = [
 export default function LocationsPage() {
   return (
     <ScrollView style={styles.container}>
-      
       {/* Title */}
       <Text style={styles.title}>All Moti Mahal Branches</Text>
       <Text style={styles.sub}>6 locations across Nagpur</Text>
@@ -109,18 +103,24 @@ export default function LocationsPage() {
             {loc.dineIn && (
               <View style={[styles.tag, { backgroundColor: "#FFEBEB" }]}>
                 <MaterialIcons name="restaurant" size={14} color="#D9534F" />
-                <Text style={[styles.tagText, { color: "#D9534F" }]}>Dine-in</Text>
+                <Text style={[styles.tagText, { color: "#D9534F" }]}>
+                  Dine-in
+                </Text>
               </View>
             )}
 
             <View style={[styles.tag, { backgroundColor: "#E8F5FF" }]}>
               <Ionicons name="bicycle" size={14} color="#0277BD" />
-              <Text style={[styles.tagText, { color: "#0277BD" }]}>Delivery</Text>
+              <Text style={[styles.tagText, { color: "#0277BD" }]}>
+                Delivery
+              </Text>
             </View>
 
             <View style={[styles.tag, { backgroundColor: "#E9F9EE" }]}>
               <Ionicons name="bag-check" size={14} color="#2E7D32" />
-              <Text style={[styles.tagText, { color: "#2E7D32" }]}>Takeaway</Text>
+              <Text style={[styles.tagText, { color: "#2E7D32" }]}>
+                Takeaway
+              </Text>
             </View>
           </View>
         </View>
