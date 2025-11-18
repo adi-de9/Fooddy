@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { menuCategories, offers, menuItems } from "@/data/mockData";
 import {
   View,
   Text,
@@ -16,6 +17,24 @@ import { useRouter } from "expo-router";
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  // const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+  // const [filters, setFilters] = useState({
+  //   cuisines: [],
+  //   priceRange: [0, 100],
+  //   minRating: 0,
+  //   dietary: "all",
+  //   dealsOnly: false,
+  // });
+
+  // const [searchText, setSearchText] = useState("");
+
+  // const handleApplyFilters = (updatedFilters, search) => {
+  //   setFilters(updatedFilters);
+  //   setSearchText(search);
+  //   console.log("APPLY FILTERS:", updatedFilters);
+  //   console.log("SEARCH:", search);
+  // };
 
   useEffect(() => {
     loadUser();
@@ -35,6 +54,7 @@ export default function HomePage() {
   };
 
   return (
+    <>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* ================= HEADER ================= */}
       <View style={styles.headerBox}>
@@ -81,7 +101,9 @@ export default function HomePage() {
           placeholder="Search & Filter dishes..."
           placeholderTextColor="#888"
         />
-        <Feather name="sliders" size={20} color="#666" />
+       <TouchableOpacity onPress={() => setIsFilterOpen(true)}>
+            <Feather name="sliders" size={20} color="#666" />
+        </TouchableOpacity>
       </View>
 
       {/* ================= OFFER CARD ================= */}
@@ -156,6 +178,13 @@ export default function HomePage() {
         </View>
       </ScrollView>
     </ScrollView>
+    {/* <FilterSheet
+  open={isFilterOpen}
+  setOpen={setIsFilterOpen}
+  filters={filters}
+  onApply={handleApplyFilters}
+/> */}
+</>
   );
 }
 
@@ -178,7 +207,7 @@ const styles = StyleSheet.create({
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 50,
+    marginTop: 30,
     justifyContent: "space-between",
   },
 
