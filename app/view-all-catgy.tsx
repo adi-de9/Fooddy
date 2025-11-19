@@ -223,36 +223,6 @@ export default function ViewAllCategoryPage() {
 
   return (
     <View style={styles.container}>
-      {/* CATEGORY SCROLLER */}
-      {/* <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{
-          paddingVertical: 6,
-          paddingBottom: 10,
-          height: 50,
-        }}
-      >
-        {categories.map((cat) => {
-          const isActive =
-            selectedCategory === "All Items"
-              ? cat === "All Items"
-              : cat?.id === (selectedCategory as MenuCategory).id;
-
-          return (
-            <TouchableOpacity
-              key={cat === "All Items" ? "all" : cat.id}
-              style={[styles.catBtn, isActive && styles.catBtnActive]}
-              onPress={() => setSelectedCategory(cat)}
-            >
-              <Text style={[styles.catText, isActive && styles.catTextActive]}>
-                {cat === "All Items" ? "All Items" : cat.name}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView> */}
-
       <DraggableFlatList
         horizontal
         data={categoriesList}
