@@ -124,7 +124,8 @@ export default function CheckoutPage() {
     (s, it) => s + (it.price || 0) * (it.quantity || 1),
     0
   );
-  const deliveryFee = subtotal <= 500 ? 2 : 0;
+  const deliveryFee =mode === "dinein" ? 0: subtotal <= 500 ? 2 : 0;
+
   const discount = appliedCoupon
     ? subtotal * (appliedCoupon.discountPercent / 100)
     : 0;
@@ -162,11 +163,9 @@ export default function CheckoutPage() {
       return;
     }
 
-   if (mode === "delivery") {
-  if (!userAddress || userAddress.trim().length === 0) {
-    Alert.alert("Please enter delivery address before placing order");
-    return;
-  }
+    if (!userAddress || userAddress.trim().length === 0) {
+  Alert.alert("Please enter delivery address before placing order");
+  return;
 }
 
 
@@ -213,8 +212,8 @@ export default function CheckoutPage() {
           <AntDesign name="left" size={22} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
-  {mode === "dinein" ? "Dine-in Checkout" : "Checkout"}
-</Text>
+          {mode === "dinein" ? "Dine-in Checkout" : "Checkout"}
+        </Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -379,21 +378,18 @@ export default function CheckoutPage() {
             placeholder="+91 98765 43210"
             keyboardType="phone-pad"
           />
-
-          {mode === "delivery" && (
-            <>
-              <Text style={[styles.label, { marginTop: 8 }]}>
-                Delivery Address
-              </Text>
-              <TextInput
-                style={[styles.input, { minHeight: 60 }]}
-                value={userAddress}
-                onChangeText={setUserAddress}
-                placeholder="House, Street, Landmark..."
-                multiline
-              />
-            </>
-          )}
+          <>
+            <Text style={[styles.label, { marginTop: 8 }]}>
+              Delivery Address
+            </Text>
+            <TextInput
+              style={[styles.input, { minHeight: 60 }]}
+              value={userAddress}
+              onChangeText={setUserAddress}
+              placeholder="House, Street, Landmark..."
+              multiline
+            />
+          </>
         </View>
 
         {/* Special Instructions */}
@@ -530,12 +526,12 @@ export default function CheckoutPage() {
             <Text>Subtotal:</Text>
             <Text>₹{subtotal.toFixed(2)}</Text>
           </View>
-         {mode === "delivery" && (
-  <View style={styles.summaryRow}>
-    <Text>Delivery Fee:</Text>
-    <Text>₹{deliveryFee.toFixed(2)}</Text>
-  </View>
-)}
+          {mode === "delivery" && (
+            <View style={styles.summaryRow}>
+              <Text>Delivery Fee:</Text>
+              <Text>₹{deliveryFee.toFixed(2)}</Text>
+            </View>
+          )}
 
           {appliedCoupon && (
             <View style={styles.summaryRow}>

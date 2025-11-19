@@ -106,6 +106,31 @@ export default function DineInPage() {
     });
   };
 
+  // date = "2025-11-19", time = "11:30 AM"
+  function convertToISO(date: string, time: string) {
+    try {
+      if (!date || !time) return null;
+
+      // Convert 11:30 AM -> 11:30
+      let [timePart, modifier] = time.split(" ");
+      let [hours, minutes] = timePart.split(":");
+
+      let h = parseInt(hours);
+
+      if (modifier === "PM" && h !== 12) h += 12;
+      if (modifier === "AM" && h === 12) h = 0;
+
+      const finalISO = new Date(
+        `${date}T${h.toString().padStart(2, "0")}:${minutes}:00`
+      );
+
+      return finalISO.toISOString();
+    } catch (err) {
+      console.log("convertToISO error:", err);
+      return null;
+    }
+  }
+
   const removePreOrderItem = (id: string) => {
     setPreOrderItems((prev) => {
       const found = prev.find((p) => p.id === id);
@@ -135,6 +160,11 @@ export default function DineInPage() {
       Alert.alert("Please select date and time");
       return;
     }
+    const scheduledParam = convertToISO(date, timeSlot);
+    if (!scheduledParam) {
+      Alert.alert("Invalid date/time");
+      return;
+    }
 
     const bookingDetails = {
       date,
@@ -147,7 +177,6 @@ export default function DineInPage() {
     await AsyncStorage.setItem("dineinBooking", JSON.stringify(bookingDetails));
     await AsyncStorage.setItem("preOrderItems", JSON.stringify(preOrderItems));
 
-    const scheduledParam = new Date(`${date} ${timeSlot}`).toISOString();
     router.push({
       pathname: "/checkout",
       params: {
