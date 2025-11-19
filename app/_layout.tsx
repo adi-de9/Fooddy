@@ -1,4 +1,5 @@
 import AllItemsHeader from "@/components/all-items";
+import FiltersHeader from "@/components/Headers/filters-header";
 import LocationsHeader from "@/components/LocationHeader";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
@@ -55,7 +56,13 @@ export default function RootLayout() {
             options={{
               headerShown: true,
               title: "Filter Screen",
-              header: (props) => <AllItemsHeader {...props} />,
+              header: (props) => (
+                <FiltersHeader
+                  upperText="Filters"
+                  lowerText="Customize your search results"
+                  {...props}
+                />
+              ),
             }}
           />
         </Stack>

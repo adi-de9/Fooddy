@@ -2,7 +2,7 @@ import { menuCategories, menuItems } from "@/data/mockData";
 import { supabase } from "@/services/supabaseClient";
 import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
@@ -10,7 +10,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -54,6 +53,31 @@ export default function HomePage() {
   const [selectedCategory, setSelectedCategory] = useState<
     string | number | null
   >(null);
+  const [filters, setFilters] = useState({
+    cuisines: [],
+    priceRange: [0, 100],
+    minRating: 0,
+    dietary: "all",
+    dealsOnly: false,
+  });
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const params = useLocalSearchParams();
+
+  useEffect(() => {
+    if (params?.appliedFilters) {
+      const parsed = JSON.parse(params.appliedFilters as string);
+      setFilters((prev) =>
+        JSON.stringify(prev) !== JSON.stringify(parsed) ? parsed : prev
+      );
+    }
+
+    if (params?.searchQuery !== undefined) {
+      setSearchQuery((prev) =>
+        prev !== params.searchQuery ? (params.searchQuery as string) : prev
+      );
+    }
+  }, [params]);
 
   useEffect(() => {
     loadUser();
@@ -61,13 +85,13 @@ export default function HomePage() {
 
   const loadUser = async (): Promise<void> => {
     const mobile = await AsyncStorage.getItem("userMobile");
-    if (!mobile) return;
 
     const { data } = await supabase
       .from("users")
       .select("*")
       .eq("mobile", mobile)
       .single<User>();
+    if (!data) return;
 
     if (data) setUser(data);
   };
@@ -76,7 +100,8 @@ export default function HomePage() {
     const raw = await AsyncStorage.getItem("cart");
     const cart: CartItem[] = raw ? JSON.parse(raw) : [];
 
-    const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const total = cart.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+    if (total !== cartCount) setCartCount(total);
 
     setCartCount(total);
   };
@@ -103,13 +128,54 @@ export default function HomePage() {
     }, [])
   );
 
-  // ======= TOP PICKS ITEMS =========
-  const allItems = Object.values(menuItems).flat();
+  const activeFilterCount =
+    filters.cuisines.length +
+    (filters.minRating > 0 ? 1 : 0) +
+    (filters.dietary !== "all" ? 1 : 0) +
+    (filters.dealsOnly ? 1 : 0) +
+    (filters.priceRange[0] > 0 || filters.priceRange[1] < 100 ? 1 : 0) +
+    (searchQuery.trim() ? 1 : 0);
 
-  // Filter by selected category
-  const topPicks = selectedCategory
-    ? allItems.filter((item) => item.categoryId == selectedCategory)
-    : allItems;
+  // ======= TOP PICKS ITEMS =========
+  // Make items stable (faster)
+  const allItems = React.useMemo(() => Object.values(menuItems).flat(), []);
+
+  // Optimize filter calculations
+  const topPicks = React.useMemo(() => {
+    let items = allItems;
+
+    if (selectedCategory) {
+      items = items.filter((i) => i.categoryId == selectedCategory);
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      items = items.filter((i) => i.name.toLowerCase().includes(q));
+    }
+
+    if (filters.cuisines.length > 0) {
+      items = items.filter((i) => filters.cuisines.includes(i.cuisine));
+    }
+
+    if (filters.minRating > 0) {
+      items = items.filter((i) => i.rating >= filters.minRating);
+    }
+
+    if (filters.dietary !== "all") {
+      items = items.filter((i) => i.dietary === filters.dietary);
+    }
+
+    if (filters.dealsOnly) {
+      items = items.filter((i) => i.hasDeals);
+    }
+
+    items = items.filter(
+      (i) =>
+        i.price >= filters.priceRange[0] && i.price <= filters.priceRange[1]
+    );
+
+    return items;
+  }, [filters, selectedCategory, searchQuery]);
 
   return (
     <>
@@ -142,16 +208,70 @@ export default function HomePage() {
 
           {/* ================= SEARCH BAR ================= */}
           <TouchableOpacity
-            onPress={() => router.push("/filter-screen")}
-            style={styles.searchBox}
+            onPress={() =>
+              router.push({
+                pathname: "/filter-screen",
+                params: {
+                  filters: JSON.stringify(filters),
+                  searchQuery,
+                },
+              })
+            }
+            style={[
+              styles.searchBox,
+              activeFilterCount > 0 && {
+                backgroundColor: "#FF5733",
+                borderColor: "#FF5733",
+              },
+            ]}
           >
-            <Ionicons name="search" size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search & Filter dishes..."
-              placeholderTextColor="#888"
+            {/* SEARCH ICON */}
+            <Ionicons
+              name="search"
+              size={20}
+              color={activeFilterCount > 0 ? "#fff" : "#666"}
             />
-            <Feather name="sliders" size={20} color="#666" />
+
+            {/* TEXT */}
+            <Text
+              style={[
+                styles.searchInput,
+                activeFilterCount > 0 && { color: "#fff" },
+              ]}
+            >
+              {searchQuery ? searchQuery : "Search & Filter dishes..."}
+            </Text>
+
+            {/* RIGHT SECTION */}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Feather
+                name="sliders"
+                size={20}
+                color={activeFilterCount > 0 ? "#fff" : "#666"}
+              />
+
+              {activeFilterCount > 0 && (
+                <View
+                  style={{
+                    backgroundColor: "#fff",
+                    marginLeft: 6,
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: 10,
+                  }}
+                >
+                  <Text
+                    style={{
+                      color: "#FF5733",
+                      fontWeight: "700",
+                      fontSize: 12,
+                    }}
+                  >
+                    {activeFilterCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -219,7 +339,7 @@ export default function HomePage() {
         <View style={styles.categoryHeader}>
           <Text style={styles.categoryTitle}>Categories</Text>
           <TouchableOpacity
-            onPress={() => router.push("/filter-screen")}
+            onPress={() => router.push("/view-all-catgy")}
             style={styles.viewAllButton}
           >
             <Text style={styles.viewAllText}>View All</Text>
@@ -261,65 +381,91 @@ export default function HomePage() {
         <View style={styles.topWrapper}>
           <Text style={styles.topTitle}>Top Picks for you</Text>
 
-          <FlatList
-            data={topPicks}
-            extraData={selectedCategory}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            columnWrapperStyle={{ justifyContent: "space-between" }}
-            scrollEnabled={false}
-            renderItem={({ item }) => (
+          {/* ❗ If no items match filters */}
+          {topPicks.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyMessage}>
+                No items found matching your filters
+              </Text>
+
               <TouchableOpacity
-                onPress={() => router.push(`/product/${item.id}`)}
-                style={styles.topCard}
+                onPress={() => {
+                  // reset search + filters
+                  setFilters({
+                    cuisines: [],
+                    priceRange: [0, 100],
+                    minRating: 0,
+                    dietary: "all",
+                    dealsOnly: false,
+                  });
+                  setSearchQuery("");
+                  setSelectedCategory(null);
+                  router.replace("/(tabs)");
+                }}
               >
-                {/* Image */}
-                <View style={styles.topImageWrapper}>
-                  <Image source={{ uri: item.image }} style={styles.topImage} />
+                <Text style={styles.clearAllText}>Clear all filters</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <FlatList
+              data={topPicks}
+              extraData={selectedCategory}
+              keyExtractor={(item) => item.id}
+              numColumns={2}
+              columnWrapperStyle={{ justifyContent: "space-between" }}
+              scrollEnabled={false}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => router.push(`/product/${item.id}`)}
+                  style={styles.topCard}
+                >
+                  {/* IMAGE + RATING + DIETARY */}
+                  <View style={styles.topImageWrapper}>
+                    <Image
+                      source={{ uri: item.image }}
+                      style={styles.topImage}
+                    />
 
-                  {/* Rating */}
-                  <View style={styles.topRating}>
-                    <Feather name="star" size={12} color="#FF5733" />
-                    <Text style={styles.ratingText}>{item.rating}</Text>
-                  </View>
-
-                  {/* Dietary */}
-                  <View
-                    style={[
-                      styles.dietTag,
-                      item.dietary === "veg" ? styles.vegBg : styles.nonVegBg,
-                    ]}
-                  >
-                    <Text style={styles.dietText}>
-                      {item.dietary === "veg" ? "🟢" : "🔴"}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Details */}
-                <View style={styles.topContent}>
-                  <Text style={styles.topName}>{item.name}</Text>
-                  <Text style={styles.topCuisine}>{item.cuisine}</Text>
-
-                  <View style={styles.bottomRow}>
-                    <View>
-                      <Text style={styles.price}>₹{item.price}</Text>
-                      {item.hasDeals && (
-                        <Text style={styles.deal}>🎉 Deal</Text>
-                      )}
+                    <View style={styles.topRating}>
+                      <Feather name="star" size={12} color="#FF5733" />
+                      <Text style={styles.ratingText}>{item.rating}</Text>
                     </View>
 
-                    <TouchableOpacity
-                      onPress={() => addToCart(item)}
-                      style={styles.addBtn}
+                    <View
+                      style={[
+                        styles.dietTag,
+                        item.dietary === "veg" ? styles.vegBg : styles.nonVegBg,
+                      ]}
                     >
-                      <Feather name="plus" size={16} color="white" />
-                    </TouchableOpacity>
+                      <Text>{item.dietary === "veg" ? "🟢" : "🔴"}</Text>
+                    </View>
                   </View>
-                </View>
-              </TouchableOpacity>
-            )}
-          />
+
+                  {/* DETAILS */}
+                  <View style={styles.topContent}>
+                    <Text style={styles.topName}>{item.name}</Text>
+                    <Text style={styles.topCuisine}>{item.cuisine}</Text>
+
+                    <View style={styles.bottomRow}>
+                      <View>
+                        <Text style={styles.price}>₹{item.price}</Text>
+                        {item.hasDeals && (
+                          <Text style={styles.deal}>🎉 Deal</Text>
+                        )}
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => addToCart(item)}
+                        style={styles.addBtn}
+                      >
+                        <Feather name="plus" size={16} color="white" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )}
+            />
+          )}
         </View>
       </ScrollView>
 
@@ -407,7 +553,6 @@ const styles = StyleSheet.create({
 
   // Offer
   offerCard: {
-    marginTop: 20,
     backgroundColor: "#FF7B5A",
     padding: 20,
     borderRadius: 18,
@@ -701,6 +846,23 @@ const styles = StyleSheet.create({
     color: "#FF7B00",
     fontSize: 10,
     fontWeight: "700",
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  emptyMessage: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 10,
+  },
+
+  clearAllText: {
+    fontSize: 15,
+    color: "#FF5733",
+    fontWeight: "600",
   },
 
   categoryText: { color: "#333", fontWeight: "500" },
