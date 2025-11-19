@@ -1,3 +1,6 @@
+import AllItemsHeader from "@/components/all-items";
+import LocationsHeader from "@/components/LocationHeader";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import {
   DarkTheme,
   DefaultTheme,
@@ -5,10 +8,8 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import "react-native-reanimated";
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -22,7 +23,7 @@ export default function RootLayout() {
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{
-            headerShown: false,
+            headerShown: false, // Hide header by default for all screens
           }}
         >
           <Stack.Screen name="(tabs)" />
@@ -31,8 +32,32 @@ export default function RootLayout() {
             name="modal"
             options={{ presentation: "modal", title: "Modal" }}
           />
+          <Stack.Screen
+            name="locations"
+            options={{
+              headerShown: true,
+              title: "Locations",
+              header: (props) => <LocationsHeader {...props} />,
+            }}
+          />
+          <Stack.Screen
+            name="view-all-catgy"
+            options={{
+              headerShown: true,
+              title: "ViewAllCatgy",
+              header: (props) => <AllItemsHeader {...props} />,
+            }}
+          />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
           <Stack.Screen name="checkout" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="filter-screen"
+            options={{
+              headerShown: true,
+              title: "Filter Screen",
+              header: (props) => <AllItemsHeader {...props} />,
+            }}
+          />
         </Stack>
 
         <StatusBar style="auto" />
