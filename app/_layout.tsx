@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import AllItemsHeader from "@/components/all-items";
 import LocationsHeader from "@/components/LocationHeader";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
@@ -31,6 +32,13 @@ export default function RootLayout() {
           options={{
             title: "Locations",
             header: (props) => <LocationsHeader {...props} />,
+          }}
+        />
+        <Stack.Screen
+          name="view-all-catgy"
+          options={{
+            title: "ViewAllCatgy",
+            header: (props) => <AllItemsHeader {...props} />,
           }}
         />
       </Stack>

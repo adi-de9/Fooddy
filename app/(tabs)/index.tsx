@@ -1,17 +1,17 @@
+import { supabase } from "@/services/supabaseClient";
+import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
   Image,
-  TouchableOpacity,
   ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "@/services/supabaseClient";
-import { useRouter } from "expo-router";
 
 export default function HomePage() {
   const router = useRouter();
@@ -141,7 +141,9 @@ export default function HomePage() {
       {/* ================= CATEGORY SECTION ================= */}
       <View style={styles.categoryHeader}>
         <Text style={styles.categoryTitle}>Categories</Text>
-        <Text style={styles.viewAll}>View All</Text>
+        <TouchableOpacity onPress={() => router.push("/view-all-catgy")}>
+          <Text style={styles.viewAll}>View All</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
