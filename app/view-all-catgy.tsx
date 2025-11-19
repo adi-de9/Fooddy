@@ -1,7 +1,9 @@
+import { menuCategories, menuItems } from "@/data/mockData";
 import React, { useState } from "react";
 import {
   FlatList,
   Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,88 +11,97 @@ import {
   View,
 } from "react-native";
 
-const categories = ["All Items", "Starters", "Main Course"];
+// types.ts
+export interface MenuCategory {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
 
-const items = [
-  {
-    id: "1",
-    name: "Butter Chicken",
-    price: "₹19",
-    desc: "Creamy tomato curry with tender chicken pieces",
-    img: "https://i.imgur.com/4YQZ8pD.png",
-  },
-  {
-    id: "2",
-    name: "Margherita Pizza",
-    price: "₹16",
-    desc: "Classic pizza with fresh mozzarella and basil",
-    img: "https://i.imgur.com/zcN2dSb.png",
-  },
-  {
-    id: "3",
-    name: "Beef Burger",
-    price: "₹15",
-    desc: "Juicy beef patty with lettuce, tomato, and cheese",
-    img: "https://i.imgur.com/8Xo3p7j.png",
-  },
-  {
-    id: "4",
-    name: "Pad Thai",
-    price: "₹17",
-    desc: "Stir-fried rice noodles with shrimp and peanuts",
-    img: "https://i.imgur.com/z7ogw2U.png",
-  },
-];
+export interface MenuItem {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string;
+  categoryId: string;
+  cuisine: string;
+  rating: number;
+  dietary: string;
+  hasDeals: boolean;
+}
 
-export default function FoodMenuScreen() {
-  const [selectedCategory, setSelectedCategory] = useState("All Items");
+type CategoryType = "All Items" | MenuCategory;
 
-  const renderItem = ({ item }) => (
+export default function ViewAllCategoryPage() {
+  const [selectedCategory, setSelectedCategory] =
+    useState<CategoryType>("All Items");
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Build category array dynamically
+  const categories: CategoryType[] = ["All Items", ...menuCategories];
+
+  // Filtering based on category
+  const filteredItems: MenuItem[] =
+    selectedCategory === "All Items"
+      ? Object.values(menuItems).flat()
+      : menuItems[selectedCategory?.id] || [];
+
+  const renderItem = ({ item }: { item: MenuItem }) => (
     <View style={styles.card}>
-      <Image source={{ uri: item.img }} style={styles.foodImg} />
+      <Image source={{ uri: item.image }} style={styles.foodImg} />
 
       <View style={{ flex: 1 }}>
         <Text style={styles.foodName}>{item.name}</Text>
-        <Text style={styles.price}>{item.price}</Text>
-        <Text style={styles.desc}>{item.desc}</Text>
+        <Text style={styles.price}>₹{item.price}</Text>
+        <Text style={styles.desc}>{item.description}</Text>
       </View>
 
-      <TouchableOpacity style={styles.addBtn}>
-        <Text style={styles.addText}>Add +</Text>
-      </TouchableOpacity>
+      <Pressable
+        onHoverIn={() => setIsHovered(true)}
+        onHoverOut={() => setIsHovered(false)}
+        style={[styles.addBtn, isHovered && styles.addBtnHover]}
+      >
+        <Text style={[styles.addText, isHovered && styles.addTextHover]}>
+          Add +
+        </Text>
+      </Pressable>
     </View>
   );
 
   return (
     <View style={styles.container}>
+      {/* Category Tabs */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         style={styles.categoryRow}
       >
-        {categories.map((cat) => (
-          <TouchableOpacity
-            key={cat}
-            style={[
-              styles.catBtn,
-              selectedCategory === cat && styles.catBtnActive,
-            ]}
-            onPress={() => setSelectedCategory(cat)}
-          >
-            <Text
-              style={[
-                styles.catText,
-                selectedCategory === cat && styles.catTextActive,
-              ]}
+        {categories.map((cat) => {
+          const isActive =
+            selectedCategory === "All Items"
+              ? cat === "All Items"
+              : (selectedCategory as MenuCategory).id ===
+                (cat as MenuCategory).id;
+
+          return (
+            <TouchableOpacity
+              key={cat === "All Items" ? "all" : (cat as MenuCategory).id}
+              style={[styles.catBtn, isActive && styles.catBtnActive]}
+              onPress={() => setSelectedCategory(cat)}
             >
-              {cat}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text style={[styles.catText, isActive && styles.catTextActive]}>
+                {cat === "All Items" ? cat : cat.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
+      {/* Item List */}
       <FlatList
-        data={items}
+        data={filteredItems}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
@@ -99,24 +110,21 @@ export default function FoodMenuScreen() {
   );
 }
 
+// Styles
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingHorizontal: 16,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginVertical: 10,
-    textAlign: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
 
-  // Category Tabs
   categoryRow: {
     flexGrow: 0,
-    marginBottom: 16,
+    marginBottom: 20,
   },
+
   catBtn: {
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -126,18 +134,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#bbbbbbff",
   },
+
   catBtnActive: {
     backgroundColor: "#FF6433",
   },
+
   catText: {
     color: "#444",
     fontWeight: "500",
   },
+
   catTextActive: {
     color: "#fff",
   },
 
-  // Cards
   card: {
     flexDirection: "row",
     padding: 14,
@@ -149,26 +159,31 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+
   foodImg: {
     width: 70,
     height: 70,
     borderRadius: 10,
     marginRight: 12,
   },
+
   foodName: {
     fontSize: 16,
     fontWeight: "700",
   },
+
   price: {
     fontSize: 14,
     color: "#FF6433",
     marginVertical: 4,
   },
+
   desc: {
     fontSize: 12,
     color: "#666",
     width: "95%",
   },
+
   addBtn: {
     backgroundColor: "#f3f3f3",
     paddingVertical: 6,
@@ -176,8 +191,16 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignSelf: "center",
   },
+
   addText: {
     fontWeight: "600",
     color: "#333",
+  },
+  addBtnHover: {
+    backgroundColor: "#FF6433", // orange on hover
+  },
+
+  addTextHover: {
+    color: "#fff",
   },
 });

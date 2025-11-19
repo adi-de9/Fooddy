@@ -4,20 +4,62 @@ import { Feather, Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
-import { FlatList, Image, ScrollView } from "react-native";
+import {
+  FlatList,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, { ZoomIn, ZoomOut } from "react-native-reanimated";
+
+export interface MenuCategory {
+  id: string; // or number, depending on your data
+  name: string;
+  icon: string; // assuming emoji or icon char
+}
+
+export interface MenuItem {
+  id: string; // should match your DB type
+  name: string;
+  image: string;
+  cuisine: string;
+  price: number;
+  rating: number;
+  dietary: "veg" | "non-veg";
+  categoryId: string | number;
+  hasDeals?: boolean;
+  quantity?: number; // local/cart
+}
+
+export interface User {
+  id: string;
+  name: string;
+  mobile: string;
+  created_at?: string;
+}
+
+export interface CartItem extends MenuItem {
+  quantity: number;
+}
 
 export default function HomePage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
-  const [cartCount, setCartCount] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
+
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [selectedCategory, setSelectedCategory] = useState<
+    string | number | null
+  >(null);
 
   useEffect(() => {
     loadUser();
   }, []);
 
-  const loadUser = async () => {
+  const loadUser = async (): Promise<void> => {
     const mobile = await AsyncStorage.getItem("userMobile");
     if (!mobile) return;
 
@@ -25,26 +67,24 @@ export default function HomePage() {
       .from("users")
       .select("*")
       .eq("mobile", mobile)
-      .single();
+      .single<User>();
 
     if (data) setUser(data);
   };
 
-  const loadCartCount = async () => {
+  const loadCartCount = async (): Promise<void> => {
     const raw = await AsyncStorage.getItem("cart");
-    const cart = raw ? JSON.parse(raw) : [];
+    const cart: CartItem[] = raw ? JSON.parse(raw) : [];
 
-    // Total quantity count
     const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
 
     setCartCount(total);
   };
 
-  const addToCart = async (item) => {
-    let raw = await AsyncStorage.getItem("cart");
-    let cart = raw ? JSON.parse(raw) : [];
+  const addToCart = async (item: MenuItem): Promise<void> => {
+    const raw = await AsyncStorage.getItem("cart");
+    let cart: CartItem[] = raw ? JSON.parse(raw) : [];
 
-    // check item existing
     const found = cart.find((it) => it.id === item.id);
 
     if (found) {
@@ -54,8 +94,6 @@ export default function HomePage() {
     }
 
     await AsyncStorage.setItem("cart", JSON.stringify(cart));
-
-    // update UI
     loadCartCount();
   };
 
@@ -178,7 +216,7 @@ export default function HomePage() {
         <View style={styles.categoryHeader}>
           <Text style={styles.categoryTitle}>Categories</Text>
           <TouchableOpacity
-            onPress={() => router.push("/menu")}
+            onPress={() => router.push("/view-all-catgy")}
             style={styles.viewAllButton}
           >
             <Text style={styles.viewAllText}>View All</Text>
