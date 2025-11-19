@@ -141,7 +141,10 @@ export default function HomePage() {
           </View>
 
           {/* ================= SEARCH BAR ================= */}
-          <View style={styles.searchBox}>
+          <TouchableOpacity
+            onPress={() => router.push("/filter-screen")}
+            style={styles.searchBox}
+          >
             <Ionicons name="search" size={20} color="#666" />
             <TextInput
               style={styles.searchInput}
@@ -149,7 +152,7 @@ export default function HomePage() {
               placeholderTextColor="#888"
             />
             <Feather name="sliders" size={20} color="#666" />
-          </View>
+          </TouchableOpacity>
         </View>
 
         <View
@@ -216,7 +219,7 @@ export default function HomePage() {
         <View style={styles.categoryHeader}>
           <Text style={styles.categoryTitle}>Categories</Text>
           <TouchableOpacity
-            onPress={() => router.push("/view-all-catgy")}
+            onPress={() => router.push("/filter-screen")}
             style={styles.viewAllButton}
           >
             <Text style={styles.viewAllText}>View All</Text>

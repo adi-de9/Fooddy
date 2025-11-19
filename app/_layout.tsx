@@ -50,6 +50,14 @@ export default function RootLayout() {
           />
           <Stack.Screen name="cart" options={{ headerShown: false }} />
           <Stack.Screen name="checkout" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="filter-screen"
+            options={{
+              headerShown: true,
+              title: "Filter Screen",
+              header: (props) => <AllItemsHeader {...props} />,
+            }}
+          />
         </Stack>
 
         <StatusBar style="auto" />
