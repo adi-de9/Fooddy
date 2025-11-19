@@ -32,6 +32,11 @@ type CartItem = {
   quantity?: number;
 };
 
+const checkLogin = async () => {
+  const mobile = await AsyncStorage.getItem("userMobile");
+  return mobile ? true : false;
+};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -124,7 +129,7 @@ export default function CheckoutPage() {
     (s, it) => s + (it.price || 0) * (it.quantity || 1),
     0
   );
-  const deliveryFee =mode === "dinein" ? 0: subtotal <= 500 ? 2 : 0;
+  const deliveryFee = mode === "dinein" ? 0 : subtotal <= 500 ? 2 : 0;
 
   const discount = appliedCoupon
     ? subtotal * (appliedCoupon.discountPercent / 100)
@@ -158,39 +163,76 @@ export default function CheckoutPage() {
 
   // place order logic per your request:
   const handlePlaceOrder = async () => {
+    setLoading(true);
+
+    const logged = await checkLogin();
+    if (!logged) {
+      setLoading(false);
+      Alert.alert("Login Required", "Please login to place order", [
+        { text: "Login", onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
+
     if (!userName || !userPhone) {
+      setLoading(false);
       Alert.alert("Please enter name and phone");
       return;
     }
 
-    if (!userAddress || userAddress.trim().length === 0) {
-  Alert.alert("Please enter delivery address before placing order");
-  return;
-}
+    const mobile = await AsyncStorage.getItem("userMobile");
 
+    const { data: userData } = await supabase
+      .from("users")
+      .select("*")
+      .eq("mobile", mobile)
+      .single();
 
-    setLoading(true);
-
-    setTimeout(async () => {
+    if (!userData) {
       setLoading(false);
+      Alert.alert("User not found", "Please login again", [
+        { text: "Login", onPress: () => router.push("/login") },
+      ]);
+      return;
+    }
 
-      await AsyncStorage.removeItem("cart");
-      await AsyncStorage.removeItem("appliedCoupon");
+    // your payload as is...
+    const payload = {
+      user_id: userData.id,
+      order_type: mode === "dinein" ? "dinein" : "delivery",
+      status: "confirmed",
+      branch_name: "Moti Mahal - Sitabuldi",
+      items: mode === "dinein" ? [...cart] : cart,
+      total_amount: total,
+      delivery_address: mode === "delivery" ? userAddress : null,
+      meta: {},
+    };
 
-      setCart([]);
-      setAppliedCoupon(null);
+    const { data, error } = await supabase
+      .from("orders")
+      .insert(payload)
+      .select()
+      .single();
 
-      Alert.alert(
-        "Congrats 🎉",
-        "Your order is placed. We'll contact you soon.",
-        [
-          {
-            text: "OK",
-            onPress: () => router.replace("/(tabs)"),
-          },
-        ]
-      );
-    }, 900);
+    if (error) {
+      setLoading(false);
+      Alert.alert("Order Failed", error.message);
+      return;
+    }
+
+    await AsyncStorage.removeItem("cart");
+    await AsyncStorage.removeItem("appliedCoupon");
+
+    setLoading(false);
+
+    router.replace({
+      pathname: "/orderPlaced",
+      params: {
+        orderId: data.id,
+        total: total,
+        payment: paymentMethod,
+      },
+    });
   };
 
   const isPlaceOrderDisabled = loading || !userName || !userPhone;

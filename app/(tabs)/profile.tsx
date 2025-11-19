@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/services/supabaseClient";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import {
   Feather,
   MaterialCommunityIcons,
@@ -22,6 +23,7 @@ const ProfileScreen = () => {
   });
 
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // Filhal static
   const ordersCount = 0;
@@ -58,9 +60,11 @@ const ProfileScreen = () => {
     loadUser();
   }, []);
 
-  const handleLogout = async () => {
-    await AsyncStorage.removeItem("userMobile");
-  };
+const handleLogout = async () => {
+  await AsyncStorage.removeItem("userMobile");
+  router.replace("/login"); // redirect to login
+};
+
 
   return (
     <View style={styles.container}>
