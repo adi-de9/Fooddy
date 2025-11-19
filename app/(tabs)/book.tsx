@@ -1,27 +1,25 @@
-import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Platform,
-} from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import React from "react";
+import {
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function BookPage() {
   const router = useRouter();
 
-  const handleTakeaway = () => router.push("/takeaway");
+  const handleTakeaway = () => router.push("/view-all-catgy");
   const handleDineIn = () => router.push("/dinein");
 
   return (
     <SafeAreaView style={styles.container}>
-
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
-
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Book Your Experience</Text>
@@ -31,7 +29,6 @@ export default function BookPage() {
         </View>
 
         <View style={styles.inner}>
-
           {/* TAKEAWAY */}
           <TouchableOpacity
             onPress={handleTakeaway}
@@ -50,14 +47,16 @@ export default function BookPage() {
                 </Text>
 
                 <View style={{ marginTop: 6 }}>
-                  {["Quick pickup", "Skip the wait", "Ready in 20-30 minutes"].map(
-                    (point, index) => (
-                      <View key={index} style={styles.bulletRow}>
-                        <View style={styles.bulletGreen} />
-                        <Text style={styles.bulletText}>{point}</Text>
-                      </View>
-                    )
-                  )}
+                  {[
+                    "Quick pickup",
+                    "Skip the wait",
+                    "Ready in 20-30 minutes",
+                  ].map((point, index) => (
+                    <View key={index} style={styles.bulletRow}>
+                      <View style={styles.bulletGreen} />
+                      <Text style={styles.bulletText}>{point}</Text>
+                    </View>
+                  ))}
                 </View>
               </View>
             </View>
@@ -119,10 +118,8 @@ export default function BookPage() {
               </Text>
             </View>
           </View>
-
         </View>
       </ScrollView>
-
     </SafeAreaView>
   );
 }
@@ -210,6 +207,11 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
 
-  infoTitle: { fontWeight: "700", fontSize: 16, color: "#111", marginBottom: 8 },
+  infoTitle: {
+    fontWeight: "700",
+    fontSize: 16,
+    color: "#111",
+    marginBottom: 8,
+  },
   infoItem: { color: "#6B7280", fontSize: 14, marginBottom: 4 },
 });
