@@ -68,10 +68,6 @@ const LOCATIONS = [
 export default function LocationsPage() {
   return (
     <ScrollView style={styles.container}>
-      {/* Title */}
-      <Text style={styles.title}>All Moti Mahal Branches</Text>
-      <Text style={styles.sub}>6 locations across Nagpur</Text>
-
       {/* Cards */}
       {LOCATIONS.map((loc) => (
         <View key={loc.id} style={styles.card}>
