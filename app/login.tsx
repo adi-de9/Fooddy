@@ -90,6 +90,15 @@ export default function LoginScreen() {
 
       if (error) throw error;
 
+      const prevMobile = await AsyncStorage.getItem("userMobile");
+
+      if (prevMobile && prevMobile !== mobile) {
+        await AsyncStorage.removeItem("cart");
+        await AsyncStorage.removeItem("appliedCoupon");
+        await AsyncStorage.removeItem("dineinBooking");
+        await AsyncStorage.removeItem("preOrderItems");
+      }
+
       // ⭐ SAVE USER MOBILE FOR FUTURE LOGIN
       await AsyncStorage.setItem("userMobile", mobile);
 
@@ -187,10 +196,7 @@ export default function LoginScreen() {
           />
 
           <TouchableOpacity
-            style={[
-              styles.button,
-              !name.trim() && { backgroundColor: "#ccc" },
-            ]}
+            style={[styles.button, !name.trim() && { backgroundColor: "#ccc" }]}
             disabled={!name.trim()}
             onPress={handleCreateAccount}
           >
@@ -219,7 +225,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: "700", color: "#222" },
   subText: { color: "#666" },
   box: { width: "100%", marginBottom: 30 },
-  heading: { textAlign: "center", fontSize: 24, fontWeight: "600", color: "#222" },
+  heading: {
+    textAlign: "center",
+    fontSize: 24,
+    fontWeight: "600",
+    color: "#222",
+  },
   subHeading: { textAlign: "center", color: "#666", marginBottom: 20 },
   input: {
     borderWidth: 2,
