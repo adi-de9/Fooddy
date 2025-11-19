@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { menuCategories, offers, menuItems } from "@/data/mockData";
 import {
   View,
@@ -8,33 +10,19 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  FlatList,
 } from "react-native";
 import { Ionicons, Feather, MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/services/supabaseClient";
 import { useRouter } from "expo-router";
+import Animated, { ZoomIn, ZoomOut } from "react-native-reanimated";
 
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
-  // const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-  // const [filters, setFilters] = useState({
-  //   cuisines: [],
-  //   priceRange: [0, 100],
-  //   minRating: 0,
-  //   dietary: "all",
-  //   dealsOnly: false,
-  // });
-
-  // const [searchText, setSearchText] = useState("");
-
-  // const handleApplyFilters = (updatedFilters, search) => {
-  //   setFilters(updatedFilters);
-  //   setSearchText(search);
-  //   console.log("APPLY FILTERS:", updatedFilters);
-  //   console.log("SEARCH:", search);
-  // };
+  const [cartCount, setCartCount] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   useEffect(() => {
     loadUser();
@@ -53,36 +41,70 @@ export default function HomePage() {
     if (data) setUser(data);
   };
 
+  const loadCartCount = async () => {
+    const raw = await AsyncStorage.getItem("cart");
+    const cart = raw ? JSON.parse(raw) : [];
+
+    // Total quantity count
+    const total = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+
+    setCartCount(total);
+  };
+
+  const addToCart = async (item) => {
+    let raw = await AsyncStorage.getItem("cart");
+    let cart = raw ? JSON.parse(raw) : [];
+
+    // check item existing
+    const found = cart.find((it) => it.id === item.id);
+
+    if (found) {
+      found.quantity = (found.quantity || 1) + 1;
+    } else {
+      cart.push({ ...item, quantity: 1 });
+    }
+
+    await AsyncStorage.setItem("cart", JSON.stringify(cart));
+
+    // update UI
+    loadCartCount();
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCartCount();
+    }, [])
+  );
+
+  // ======= TOP PICKS ITEMS =========
+  const allItems = Object.values(menuItems).flat();
+
+  // Filter by selected category
+  const topPicks = selectedCategory
+    ? allItems.filter((item) => item.categoryId == selectedCategory)
+    : allItems;
+
   return (
     <>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* ================= HEADER ================= */}
-      <View style={styles.headerBox}>
-        {user ? (
-          <>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>{user.name} 👋</Text>
-          </>
-        ) : (
-          <>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>Guest User 👋</Text>
-          </>
-        )}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        {/* ================= HEADER ================= */}
+        <View style={styles.headerBox}>
+          <Text style={styles.welcomeText}>Welcome back,</Text>
+          <Text style={styles.userName}>
+            {user ? user.name : "Guest User"} 👋
+          </Text>
 
-        {/* LOCATION ROW */}
-        <View style={styles.locationRow}>
-          <View style={styles.locationLeft}>
-            <Ionicons name="location-sharp" size={20} color="#FF5733" />
+          {/* LOCATION ROW */}
+          <View style={styles.locationRow}>
+            <View style={styles.locationLeft}>
+              <Ionicons name="location-sharp" size={20} color="#FF5733" />
 
-            <View>
-              <Text style={styles.locationLabel}>Location</Text>
-              <Text style={styles.locationValue}>Sitabuildi, Nagpur</Text>
+              <View>
+                <Text style={styles.locationLabel}>Location</Text>
+                <Text style={styles.locationValue}>Sitabuildi, Nagpur</Text>
+              </View>
             </View>
-          </View>
 
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            {/* STORE ICON → LOCATION PAGE */}
             <TouchableOpacity
               onPress={() => router.push("/locations")}
               style={styles.storeBtn}
@@ -90,106 +112,215 @@ export default function HomePage() {
               <Ionicons name="storefront" size={22} color="#222" />
             </TouchableOpacity>
           </View>
-        </View>
-      </View>
 
-      {/* ================= SEARCH BAR ================= */}
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={20} color="#666" />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search & Filter dishes..."
-          placeholderTextColor="#888"
-        />
-       <TouchableOpacity onPress={() => setIsFilterOpen(true)}>
+          {/* ================= SEARCH BAR ================= */}
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={20} color="#666" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search & Filter dishes..."
+              placeholderTextColor="#888"
+            />
             <Feather name="sliders" size={20} color="#666" />
-        </TouchableOpacity>
-      </View>
+          </View>
+        </View>
 
-      {/* ================= OFFER CARD ================= */}
-      <View style={styles.offerCard}>
-        <View>
-          <Text style={styles.offerTitle}>SPECIAL OFFER</Text>
-          <Text style={styles.offerDiscount}>Get 50% OFF</Text>
-          <Text style={styles.offerSub}>On your first order above ₹500</Text>
+        <View
+          style={{ height: 1, backgroundColor: "#eee", marginVertical: 20 }}
+        />
 
-          <TouchableOpacity style={styles.orderBtn}>
-            <Text style={styles.orderBtnText}>Order Now</Text>
+        {/* ================= OFFER CARD ================= */}
+        <View style={styles.offerCard}>
+          <View>
+            <Text style={styles.offerTitle}>SPECIAL OFFER</Text>
+            <Text style={styles.offerDiscount}>Get 50% OFF</Text>
+            <Text style={styles.offerSub}>On your first order above ₹500</Text>
+
+            <TouchableOpacity style={styles.orderBtn}>
+              <Text style={styles.orderBtnText}>Order Now</Text>
+            </TouchableOpacity>
+          </View>
+
+          <Image
+            source={{
+              uri: "https://cdn-icons-png.flaticon.com/512/3595/3595455.png",
+            }}
+            style={styles.offerImage}
+          />
+        </View>
+
+        {/* ================= RESTAURANT CARD ================= */}
+        <View style={styles.restaurantCardContainer}>
+          <View style={styles.card}>
+            <View style={styles.imageContainer}>
+              <Image
+                source={{
+                  uri: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80",
+                }}
+                style={styles.image}
+              />
+              <View style={styles.ratingOverlay}>
+                <Ionicons name="star" size={14} color="#FF5733" />
+                <Text style={styles.ratingText}>4.8</Text>
+              </View>
+            </View>
+
+            <View style={styles.content}>
+              <Text style={styles.restaurantName}>Moti Mahal</Text>
+              <Text style={styles.cuisine}>
+                North Indian • Chinese • Continental
+              </Text>
+
+              <View style={styles.infoRow}>
+                <View style={styles.iconRow}>
+                  <Feather name="clock" size={14} color="#FF5733" />
+                  <Text style={styles.infoText}>25-30 min</Text>
+                </View>
+                <View style={styles.iconRow}>
+                  <MaterialIcons name="location-on" size={14} color="#FF5733" />
+                  <Text style={styles.infoText}>2.5 km away</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ================= CATEGORY SECTION ================= */}
+        <View style={styles.categoryHeader}>
+          <Text style={styles.categoryTitle}>Categories</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/menu")}
+            style={styles.viewAllButton}
+          >
+            <Text style={styles.viewAllText}>View All</Text>
+            <Feather name="arrow-right" size={16} color="#FF5733" />
           </TouchableOpacity>
         </View>
 
-        <Image
-          source={{
-            uri: "https://cdn-icons-png.flaticon.com/512/3595/3595455.png",
-          }}
-          style={styles.offerImage}
-        />
-      </View>
-
-      {/* ================= RESTAURANT CARD ================= */}
-      <View style={styles.restaurantCard}>
-        <Image
-          source={{
-            uri: "https://images.unsplash.com/photo-1528605248644-14dd04022da1",
-          }}
-          style={styles.restaurantImage}
-        />
-
-        <View style={{ padding: 12 }}>
-          <View style={styles.ratingRow}>
-            <Ionicons name="star" size={16} color="#FF9F0A" />
-            <Text style={styles.ratingText}>4.8</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View style={styles.categoryList}>
+            {menuCategories.map((category) => (
+              <TouchableOpacity
+                key={category.id}
+                onPress={() => {
+                  if (selectedCategory === category.id) {
+                    setSelectedCategory(null); // unselect
+                  } else {
+                    setSelectedCategory(category.id); // select
+                  }
+                }}
+                style={[
+                  styles.categoryBox,
+                  selectedCategory === category.id && {
+                    borderColor: "#FF5733",
+                    borderWidth: 2,
+                    backgroundColor: "#fff4e8", // optional light orange, remove if not needed
+                  },
+                ]}
+              >
+                <View style={styles.categoryIconContainer}>
+                  <Text style={styles.categoryIcon}>{category.icon}</Text>
+                </View>
+                <Text style={styles.categoryText}>{category.name}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
+        </ScrollView>
 
-          <Text style={styles.restaurantName}>Moti Mahal</Text>
-          <Text style={styles.restaurantCuisine}>
-            North Indian • Chinese • Continental
-          </Text>
+        {/* ⭐⭐⭐ TOP PICKS SECTION ⭐⭐⭐ */}
+        <View style={styles.topWrapper}>
+          <Text style={styles.topTitle}>Top Picks for you</Text>
 
-          <View style={styles.infoRow}>
-            <View style={styles.iconRow}>
-              <Feather name="clock" size={16} color="#666" />
-              <Text style={styles.infoText}>25-30 min</Text>
-            </View>
+          <FlatList
+            data={topPicks}
+            extraData={selectedCategory}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={{ justifyContent: "space-between" }}
+            scrollEnabled={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                onPress={() => router.push(`/product/${item.id}`)}
+                style={styles.topCard}
+              >
+                {/* Image */}
+                <View style={styles.topImageWrapper}>
+                  <Image source={{ uri: item.image }} style={styles.topImage} />
 
-            <View style={styles.iconRow}>
-              <MaterialIcons name="location-on" size={16} color="#666" />
-              <Text style={styles.infoText}>2.5 km away</Text>
-            </View>
-          </View>
-        </View>
-      </View>
+                  {/* Rating */}
+                  <View style={styles.topRating}>
+                    <Feather name="star" size={12} color="#FF5733" />
+                    <Text style={styles.ratingText}>{item.rating}</Text>
+                  </View>
 
-      {/* ================= CATEGORY SECTION ================= */}
-      <View style={styles.categoryHeader}>
-        <Text style={styles.categoryTitle}>Categories</Text>
-        <Text style={styles.viewAll}>View All</Text>
-      </View>
+                  {/* Dietary */}
+                  <View
+                    style={[
+                      styles.dietTag,
+                      item.dietary === "veg" ? styles.vegBg : styles.nonVegBg,
+                    ]}
+                  >
+                    <Text style={styles.dietText}>
+                      {item.dietary === "veg" ? "🟢" : "🔴"}
+                    </Text>
+                  </View>
+                </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View style={styles.categoryList}>
-          {["Pizza", "Burger", "Biryani", "Chinese", "Snacks"].map(
-            (item, i) => (
-              <View key={i} style={styles.categoryBox}>
-                <Text style={styles.categoryText}>{item}</Text>
-              </View>
-            )
-          )}
+                {/* Details */}
+                <View style={styles.topContent}>
+                  <Text style={styles.topName}>{item.name}</Text>
+                  <Text style={styles.topCuisine}>{item.cuisine}</Text>
+
+                  <View style={styles.bottomRow}>
+                    <View>
+                      <Text style={styles.price}>₹{item.price}</Text>
+                      {item.hasDeals && (
+                        <Text style={styles.deal}>🎉 Deal</Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      onPress={() => addToCart(item)}
+                      style={styles.addBtn}
+                    >
+                      <Feather name="plus" size={16} color="white" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            )}
+          />
         </View>
       </ScrollView>
-    </ScrollView>
-    {/* <FilterSheet
-  open={isFilterOpen}
-  setOpen={setIsFilterOpen}
-  filters={filters}
-  onApply={handleApplyFilters}
-/> */}
-</>
+
+      {/* FLOATING CART BUTTON */}
+      {cartCount > 0 && (
+        <Animated.View
+          entering={ZoomIn}
+          exiting={ZoomOut}
+          style={styles.cartContainer}
+        >
+          <TouchableOpacity
+            onPress={() => router.push("/cart")}
+            style={styles.cartBtn}
+          >
+            <Feather name="shopping-cart" size={26} color="#fff" />
+
+            <View style={styles.cartBadge}>
+              <Text style={styles.badgeText}>
+                {cartCount > 99 ? "99+" : cartCount}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    position: "fixed",
     flex: 1,
     backgroundColor: "#fff7f2",
     paddingHorizontal: 20,
@@ -234,6 +365,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
+    marginTop: 30,
     borderColor: "#eee",
   },
 
@@ -272,32 +404,80 @@ const styles = StyleSheet.create({
 
   offerImage: { width: 80, height: 80 },
 
-  // Restaurant
-  restaurantCard: {
+  // Restaurant Card
+  restaurantCardContainer: {
     marginTop: 25,
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#eee",
+    paddingBottom: 16,
   },
-
-  restaurantImage: { width: "100%", height: 160 },
-
-  restaurantName: { fontSize: 20, fontWeight: "700", marginTop: 5 },
-  restaurantCuisine: { color: "#777", marginTop: 2 },
-
-  ratingRow: { flexDirection: "row", alignItems: "center" },
-  ratingText: { marginLeft: 4, color: "#111", fontWeight: "600" },
-
-  infoRow: {
-    marginTop: 10,
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 24,
+    borderWidth: 2,
+    borderColor: "#f0f0f0",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  imageContainer: {
+    position: "relative",
+    height: 128,
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  ratingOverlay: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  ratingText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  content: {
+    padding: 16,
+  },
+  topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
   },
-
-  iconRow: { flexDirection: "row", alignItems: "center" },
-  infoText: { marginLeft: 4, color: "#666" },
+  restaurantName: {
+    fontSize: 16,
+    color: "#333",
+    marginBottom: 4,
+  },
+  cuisine: {
+    fontSize: 12,
+    color: "#666",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+  },
+  iconRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: "#666",
+  },
 
   // Categories
   categoryHeader: {
@@ -340,6 +520,157 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderWidth: 1,
     borderColor: "#eee",
+  },
+  viewAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  viewAllText: {
+    color: "#FF5733",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  categoryIconContainer: {
+    width: 48,
+    height: 48,
+    backgroundColor: "#fff8e1",
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  categoryIcon: {
+    fontSize: 24,
+  },
+  // categoryText: {
+  //   fontSize: 12,
+  //   fontWeight: '500',
+  //   color: '#333',
+  //   textAlign: 'center',
+  // },
+  /* TOP PICKS styles */
+  topWrapper: {
+    paddingVertical: 24,
+    borderTopWidth: 1,
+    borderColor: "#eee",
+  },
+  topTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 16,
+    color: "#333",
+  },
+  topCard: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#eee",
+    marginBottom: 16,
+    width: "48%",
+  },
+  topImageWrapper: {
+    height: 130,
+    position: "relative",
+  },
+  topImage: { width: "100%", height: "100%" },
+
+  topRating: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: "rgba(255,255,255,0.95)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  dietTag: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 20,
+    height: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vegBg: { backgroundColor: "#d4f8d4" },
+  nonVegBg: { backgroundColor: "#ffd4d4" },
+
+  topContent: {
+    padding: 10,
+  },
+  topName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#333",
+  },
+  topCuisine: {
+    fontSize: 11,
+    color: "#777",
+    marginBottom: 6,
+  },
+
+  bottomRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FF5733",
+  },
+  deal: {
+    fontSize: 11,
+    color: "green",
+  },
+
+  addBtn: {
+    backgroundColor: "#FF5733",
+    width: 30,
+    height: 30,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  /* FLOATING CART BUTTON */
+  cartContainer: {
+    position: "absolute",
+    bottom: 90,
+    right: 20,
+  },
+  cartBtn: {
+    width: 58,
+    height: 58,
+    backgroundColor: "#FF7B00",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 6,
+  },
+  cartBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    backgroundColor: "white",
+    borderColor: "#FF7B00",
+    borderWidth: 2,
+    width: 22,
+    height: 22,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    color: "#FF7B00",
+    fontSize: 10,
+    fontWeight: "700",
   },
 
   categoryText: { color: "#333", fontWeight: "500" },
