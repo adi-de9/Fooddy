@@ -1,5 +1,6 @@
-import { Feather } from "@expo/vector-icons"; // <-- Expo Icons
+import { Feather } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Pressable,
@@ -18,12 +19,12 @@ export type FilterOptions = {
   dealsOnly: boolean;
 };
 
-type Props = {
-  filters: FilterOptions;
-  onApplyFilters: (filters: FilterOptions) => void;
-  onBack: () => void;
-  searchQuery?: string;
-  onSearchChange?: (query: string) => void;
+const DEFAULT_FILTERS: FilterOptions = {
+  cuisines: [],
+  priceRange: [0, 100],
+  minRating: 0,
+  dietary: "all",
+  dealsOnly: false,
 };
 
 const CUISINES = [
@@ -43,36 +44,32 @@ const RATINGS = [
   { value: 4.5, label: "4.5+" },
 ];
 
-export default function FilterScreen({
-  filters = {
-    cuisines: [],
-    priceRange: [0, 100],
-    minRating: 0,
-    dietary: "all",
-    dealsOnly: false,
-  },
-  onApplyFilters,
-  onBack,
-  searchQuery = "",
-  onSearchChange,
-}: Props) {
-  const DEFAULT_FILTERS: FilterOptions = {
-    cuisines: [],
-    priceRange: [0, 100],
-    minRating: 0,
-    dietary: "all",
-    dealsOnly: false,
-  };
+export default function FilterScreen() {
+  const router = useRouter();
+
+  const params = useLocalSearchParams();
+
+  const incomingFilters =
+    (params?.filters ? JSON.parse(params.filters as string) : null) ||
+    DEFAULT_FILTERS;
+
+  const incomingSearch = (params?.searchQuery as string) || "";
 
   const mergedFilters: FilterOptions = {
     ...DEFAULT_FILTERS,
-    ...filters,
-    cuisines: filters?.cuisines ?? [],
-    priceRange: filters?.priceRange ?? [0, 100],
+    ...incomingFilters,
+    cuisines: Array.isArray(incomingFilters.cuisines)
+      ? incomingFilters.cuisines
+      : [],
+    priceRange:
+      Array.isArray(incomingFilters.priceRange) &&
+      incomingFilters.priceRange.length === 2
+        ? incomingFilters.priceRange
+        : [0, 100],
   };
 
   const [tempFilters, setTempFilters] = useState<FilterOptions>(mergedFilters);
-  const [tempSearchQuery, setTempSearchQuery] = useState(searchQuery);
+  const [tempSearchQuery, setTempSearchQuery] = useState(incomingSearch);
 
   const toggleCuisine = (cuisine: string) => {
     setTempFilters((prev) => ({
@@ -84,19 +81,17 @@ export default function FilterScreen({
   };
 
   const handleApply = () => {
-    onApplyFilters(tempFilters);
-    onSearchChange?.(tempSearchQuery);
-    onBack();
+    router.replace({
+      pathname: "/(tabs)",
+      params: {
+        appliedFilters: JSON.stringify(tempFilters),
+        searchQuery: tempSearchQuery,
+      },
+    });
   };
 
   const handleClearAll = () => {
-    setTempFilters({
-      cuisines: [],
-      priceRange: [0, 100],
-      minRating: 0,
-      dietary: "all",
-      dealsOnly: false,
-    });
+    setTempFilters(DEFAULT_FILTERS);
     setTempSearchQuery("");
   };
 
@@ -110,17 +105,6 @@ export default function FilterScreen({
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.backBtn}>
-          <Feather name="arrow-left" size={22} color="#000" />
-        </Pressable>
-        <View>
-          <Text style={styles.title}>Filters</Text>
-          <Text style={styles.subtitle}>Customize your search results</Text>
-        </View>
-      </View>
-
       <ScrollView style={styles.scroll}>
         {/* Search */}
         <Text style={styles.sectionTitle}>Search</Text>
@@ -207,7 +191,7 @@ export default function FilterScreen({
           })}
         </View>
 
-        {/* Dietary */}
+        {/* Dietary Preference */}
         <Text style={styles.sectionTitle}>Dietary Preference</Text>
         <View style={styles.grid3}>
           {(["all", "veg", "non-veg"] as const).map((opt) => {
@@ -261,7 +245,7 @@ export default function FilterScreen({
           </View>
         </Pressable>
 
-        <View style={{ height: 50 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
 
       {/* Footer */}
@@ -285,7 +269,11 @@ export default function FilterScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF8F0" },
+  container: {
+    flex: 1,
+    backgroundColor: "#FFF8F0",
+    paddingBottom: "10%",
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
