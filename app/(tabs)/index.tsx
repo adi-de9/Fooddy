@@ -179,7 +179,7 @@ export default function HomePage() {
 
   return (
     <>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <View style={styles.container1}>
         {/* ================= HEADER ================= */}
         <View style={styles.headerBox}>
           <Text style={styles.welcomeText}>Welcome back,</Text>
@@ -274,9 +274,11 @@ export default function HomePage() {
             </View>
           </TouchableOpacity>
         </View>
+      </View>
 
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View
-          style={{ height: 1, backgroundColor: "#eee", marginVertical: 20 }}
+          style={{ height: 1, backgroundColor: "#eee", marginBottom: 10 }}
         />
 
         {/* ================= OFFER CARD ================= */}
@@ -495,6 +497,13 @@ export default function HomePage() {
 }
 
 const styles = StyleSheet.create({
+  container1: {
+    position: "fixed",
+    backgroundColor: "#fff7f2",
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+
   container: {
     position: "fixed",
     flex: 1,
@@ -506,7 +515,7 @@ const styles = StyleSheet.create({
   // HEADER
   headerBox: {
     marginTop: 50,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   welcomeText: { fontSize: 16, color: "#777" },
   userName: { fontSize: 22, fontWeight: "700", color: "#111" },
